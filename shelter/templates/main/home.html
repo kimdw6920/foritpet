@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>포잇펫 - 새로운 가족을 찾아요</title>
+    <style>
+        body { font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 0; background: #fdfdfd; }
+        .navbar { display: flex; justify-content: space-between; padding: 20px 50px; background: #fff; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
+        .logo { color: #ff4d6d; font-weight: bold; font-size: 24px; text-decoration: none; }
+        .nav-links a { margin-left: 20px; text-decoration: none; color: #333; font-size: 14px; }
+        
+        .hero { padding: 50px; max-width: 1200px; margin: 0 auto; }
+        .search-bar { width: 100%; padding: 15px; border-radius: 10px; border: 1px solid #ddd; margin: 20px 0; font-size: 16px; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; }
+        .card { background: #fff; border-radius: 15px; overflow: hidden; border: 1px solid #eee; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .card-img { width: 100%; height: 200px; background: #eee; object-fit: cover; }
+        .card-body { padding: 20px; }
+        .tag { background: #f0f0f0; padding: 2px 8px; border-radius: 5px; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">❤️ 포잇펫</a>
+        <div class="nav-links">
+            <a href="#">입양하기</a>
+            <a href="#">커뮤니티</a>
+            <a href="/shelter/1/">보호소</a> <a href="#">내 포인트</a>
+        </div>
+        <div class="user-info">🪙 125P</div>
+    </nav>
+
+    <div class="hero">
+        <h1>새로운 가족을 찾고 있어요</h1>
+        <p>사랑이 필요한 반려동물들을 만나보세요</p>
+        
+        <input type="text" class="search-bar" placeholder="이름, 품종, 지역으로 검색...">
+
+        <div class="grid">
+            {% for shelter in shelters %}
+            <div class="card" onclick="location.href='/shelter/{{ shelter.id }}/'" style="cursor:pointer;">
+                {% if shelter.image %}
+                    <img src="{{ shelter.image.url }}" class="card-img">
+                {% else %}
+                    <div class="card-img" style="display:flex; align-items:center; justify-content:center;">이미지 없음</div>
+                {% endif %}
+                <div class="card-body">
+                    <span class="tag">보호소</span>
+                    <h3 style="margin: 10px 0;">{{ shelter.name }}</h3>
+                    <p style="font-size: 14px; color: #888;">{{ shelter.address }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
