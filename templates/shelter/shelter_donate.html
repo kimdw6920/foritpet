@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="py-3">
+    <a href="{% url 'shelter_detail_info' shelter.pk %}" class="text-decoration-none text-muted small">← {{ shelter.name }}</a>
+    <h4 class="fw-bold mt-2">사료 후원</h4>
+    <p class="text-muted small">플랫폼에서 사료를 구매하면 해당 보호소에 전달됩니다.</p>
+
+    <form method="post" action="{% url 'shelter_donate_do' shelter.pk %}">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">수량</label>
+            <input type="number" name="amount" class="form-control" value="1" min="1" max="100">
+        </div>
+        <div class="list-group">
+            {% for product in products %}
+            <label class="list-group-item d-flex gap-3 align-items-center border rounded mb-2">
+                <input type="radio" name="product_id" value="{{ product.pk }}" {% if shelter.target_product_id == product.pk %}checked{% endif %} class="form-check-input">
+                <div class="d-flex w-100 align-items-center">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="" class="rounded" style="width: 56px; height: 56px; object-fit: cover;">
+                    {% else %}
+                    <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 56px; height: 56px; font-size: 0.7rem;">사료</div>
+                    {% endif %}
+                    <div class="ms-3 flex-grow-1">
+                        <strong>{{ product.name }}</strong>
+                        {% if shelter.target_product_id == product.pk %}<span class="badge bg-primary ms-1">보호소 추천</span>{% endif %}
+                        <div class="text-muted small">{{ product.price|floatformat:0 }}원</div>
+                    </div>
+                </div>
+            </label>
+            {% empty %}
+            <p class="text-muted">등록된 사료가 없습니다.</p>
+            {% endfor %}
+        </div>
+        {% if products %}
+        <button type="submit" class="btn btn-primary w-100 rounded-pill mt-2">후원하기</button>
+        {% endif %}
+    </form>
+
+    <ul class="nav nav-pills nav-fill bg-light rounded p-1 mt-4" role="tablist">
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_detail_info' shelter.pk %}">기본정보</a></li>
+        <li class="nav-item"><a class="nav-link active" href="{% url 'shelter_donate' shelter.pk %}">사료 후원</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_community_list' shelter.pk %}">보호소 커뮤니티</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_donations' shelter.pk %}">후원 내역</a></li>
+    </ul>
+</div>
+{% endblock %}

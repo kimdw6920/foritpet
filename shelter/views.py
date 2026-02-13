@@ -1,32 +1,57 @@
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-# 아래 줄이 빠져서 NameError가 났던 것입니다!
-from .models import Shelter, VolunteerSchedule, VolunteerApplication, UserProfile
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import Shelter, Product, Donation
 
-# 1. 보호소 상세 페이지 뷰
-def shelter_detail(request, shelter_id):
-    shelter = get_object_or_404(Shelter, id=shelter_id)
-    return render(request, 'shelter/shelter_detail.html', {'shelter': shelter})
 
-# 2. 봉사 신청 로직
-def apply_volunteer(request, schedule_id):
-    if request.method == 'POST':
-        # 여기서도 Shelter와 관련된 모델들을 사용합니다.
-        schedule = get_object_or_404(VolunteerSchedule, id=schedule_id)
-        
-        if schedule.current_participants >= schedule.max_participants:
-            return JsonResponse({'message': '이미 정원이 초과되었습니다.'}, status=400)
-        
-        VolunteerApplication.objects.create(
-            user=request.user,
-            schedule=schedule
-        )
-        
-        schedule.current_participants += 1
-        schedule.save()
-        
-        profile, created = UserProfile.objects.get_or_create(user=request.user)
-        profile.point += 500
-        profile.save()
-        
-        return JsonResponse({'message': '신청이 완료되었습니다! 500P가 적립되었습니다.'})
+def shelter_list(request):
+    """전국 보호소 리스트 (지역별 정렬)"""
+    shelters = Shelter.objects.all().order_by('region', 'name')
+    return render(request, 'shelter_list.html', {'shelters': shelters})
+
+
+def shelter_detail_info(request, pk):
+    """보호소 기본정보"""
+    shelter = get_object_or_404(Shelter, pk=pk)
+    return render(request, 'shelter/shelter_info.html', {'shelter': shelter})
+
+
+def shelter_donate(request, pk):
+    """사료 후원 페이지 - 플랫폼에서 사료 구매"""
+    shelter = get_object_or_404(Shelter, pk=pk)
+    products = list(Product.objects.all())
+    if shelter.target_product and shelter.target_product in products:
+        products.remove(shelter.target_product)
+        products.insert(0, shelter.target_product)
+    return render(request, 'shelter/shelter_donate.html', {
+        'shelter': shelter,
+        'products': products,
+    })
+
+
+def shelter_donate_do(request, pk):
+    """사료 후원 처리 (로그인 필요)"""
+    if not request.user.is_authenticated:
+        messages.warning(request, '로그인 후 후원할 수 있습니다.')
+        return redirect('shelter_donate', pk=pk)
+    shelter = get_object_or_404(Shelter, pk=pk)
+    product_id = request.POST.get('product_id')
+    amount = request.POST.get('amount', '1')
+    try:
+        amount = max(1, int(amount))
+    except ValueError:
+        amount = 1
+    product = get_object_or_404(Product, pk=product_id)
+    Donation.objects.create(user=request.user, shelter=shelter, product=product, amount=amount)
+    messages.success(request, f'{product.name} {amount}개가 {shelter.name}에 후원 등록되었습니다.')
+    return redirect('shelter_donations', pk=pk)
+
+
+def shelter_donations(request, pk):
+    """보호소 후원 내역 (해당 보호소로의 후원 목록)"""
+    shelter = get_object_or_404(Shelter, pk=pk)
+    donations = Donation.objects.filter(shelter=shelter).select_related('user', 'product').order_by('-created_at')[:50]
+    return render(request, 'shelter/shelter_donations.html', {
+        'shelter': shelter,
+        'donations': donations,
+    })

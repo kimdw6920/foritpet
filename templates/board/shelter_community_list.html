@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="py-3">
+    <a href="{% url 'shelter_detail_info' shelter.pk %}" class="text-decoration-none text-muted small">← {{ shelter.name }}</a>
+    <h4 class="fw-bold mt-2">보호소 커뮤니티</h4>
+    <ul class="nav nav-pills nav-fill bg-light rounded p-1 mb-3" role="tablist">
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_detail_info' shelter.pk %}">기본정보</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_donate' shelter.pk %}">사료 후원</a></li>
+        <li class="nav-item"><a class="nav-link active" href="{% url 'shelter_community_list' shelter.pk %}">보호소 커뮤니티</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_donations' shelter.pk %}">후원 내역</a></li>
+    </ul>
+    <p class="text-muted small">{{ shelter.name }} 후원자들과 소통해 보세요.</p>
+
+    <a href="{% url 'shelter_community_post_create' shelter.pk %}" class="btn btn-primary w-100 mb-3 rounded-pill">글쓰기</a>
+
+    <div class="list-group list-group-flush">
+        {% for post in posts %}
+        <a href="{% url 'shelter_community_post_detail' shelter.pk post.pk %}" class="list-group-item list-group-item-action border-0 border-bottom py-3 px-0">
+            <h6 class="fw-bold text-dark mb-1">{{ post.title }}</h6>
+            <p class="text-muted small mb-0">{{ post.content|truncatewords:15 }}</p>
+            <span class="text-muted" style="font-size: 0.75rem;">{{ post.author.username }} · {{ post.created_at|date:"Y.m.d" }}</span>
+        </a>
+        {% empty %}
+        <div class="text-center py-5">
+            <p class="text-muted">아직 글이 없습니다.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

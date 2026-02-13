@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="py-3">
+    <a href="{% url 'shelter_detail_info' shelter.pk %}" class="text-decoration-none text-muted small">← {{ shelter.name }}</a>
+    <h4 class="fw-bold mt-2">후원 내역</h4>
+    <p class="text-muted small">{{ shelter.name }}으로 전달된 후원 기록입니다.</p>
+
+    <div class="list-group list-group-flush">
+        {% for d in donations %}
+        <div class="list-group-item border-0 border-bottom py-3 px-0">
+            <div class="d-flex justify-content-between">
+                <span class="fw-bold">{{ d.product.name }}</span>
+                <span class="text-primary">{{ d.amount }}개</span>
+            </div>
+            <span class="text-muted small">{{ d.user.username }} · {{ d.created_at|date:"Y.m.d H:i" }}</span>
+        </div>
+        {% empty %}
+        <div class="text-center py-5 text-muted">아직 후원 내역이 없습니다.</div>
+        {% endfor %}
+    </div>
+
+    <ul class="nav nav-pills nav-fill bg-light rounded p-1 mt-4" role="tablist">
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_detail_info' shelter.pk %}">기본정보</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_donate' shelter.pk %}">사료 후원</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_community_list' shelter.pk %}">보호소 커뮤니티</a></li>
+        <li class="nav-item"><a class="nav-link active" href="{% url 'shelter_donations' shelter.pk %}">후원 내역</a></li>
+    </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="py-3">
+    <h4 class="fw-bold">내 정보 👤</h4>
+    <p class="text-muted small">{{ user.username }}님의 후원 기록입니다.</p>
+
+    <div class="card border-0 shadow-sm bg-primary text-white mb-4" style="border-radius: 15px;">
+        <div class="card-body p-4">
+            <h6 class="opacity-75 small mb-1">총 후원한 사료</h6>
+            <h2 class="fw-bold mb-0">{{ total_items }}개</h2>
+        </div>
+    </div>
+
+    <h5 class="fw-bold mb-3">최근 후원 내역</h5>
+    <div class="list-group list-group-flush">
+        {% for d in donations %}
+        <a href="{% url 'shelter_detail_info' d.shelter_id %}" class="list-group-item list-group-item-action border-0 border-bottom py-3 px-0 text-decoration-none text-dark">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <strong>{{ d.product.name }}</strong> × {{ d.amount }}
+                    <div class="text-muted small">{{ d.shelter.name }} · {{ d.created_at|date:"Y.m.d" }}</div>
+                </div>
+                <span class="text-muted small">></span>
+            </div>
+        </a>
+        {% empty %}
+        <div class="text-center py-5 text-muted">
+            아직 후원 내역이 없습니다.<br>
+            <a href="{% url 'shelter_list' %}">보호소에서 사료 후원하기</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-4">
+        <a href="{% url 'community_list' %}" class="btn btn-outline-primary w-100 rounded-pill">커뮤니티에서 소통하기</a>
+    </div>
+</div>
+{% endblock %}
