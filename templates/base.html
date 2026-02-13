@@ -16,8 +16,20 @@
 <body>
     <div class="mobile-container">
         <nav class="navbar navbar-light bg-white border-bottom sticky-top">
-            <div class="container-fluid justify-content-center">
+            <div class="container-fluid justify-content-between align-items-center">
                 <a class="navbar-brand fw-bold" href="{% url 'home' %}">🐾 For It Pet</a>
+                <div class="d-flex align-items-center gap-2">
+                    {% if user.is_authenticated %}
+                    <span class="small text-muted">{{ user.username }}님</span>
+                    <form method="post" action="{% url 'logout' %}" class="mb-0">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">로그아웃</button>
+                    </form>
+                    {% else %}
+                    {% url 'login' as login_url %}
+                    <a href="{{ login_url }}{% if request.path != login_url %}?next={{ request.path|urlencode }}{% endif %}" class="btn btn-outline-primary btn-sm">로그인</a>
+                    {% endif %}
+                </div>
             </div>
         </nav>
 

@@ -4,20 +4,11 @@
 <div class="py-3">
     <a href="{% url 'shelter_detail_info' shelter.pk %}" class="text-decoration-none text-muted small">← {{ shelter.name }}</a>
     <h4 class="fw-bold mt-2">후원 내역</h4>
-    <p class="text-muted small">{{ shelter.name }}에 대한 <strong>내</strong> 후원 기록입니다.</p>
+    <p class="text-muted small">{{ shelter.name }}에 대한 <strong>내</strong> 후원 기록을 보려면 로그인이 필요합니다.</p>
 
-    <div class="list-group list-group-flush">
-        {% for d in donations %}
-        <div class="list-group-item border-0 border-bottom py-3 px-0">
-            <div class="d-flex justify-content-between">
-                <span class="fw-bold">{{ d.product.name }}</span>
-                <span class="text-primary">{{ d.amount }}개</span>
-            </div>
-            <span class="text-muted small">{{ d.created_at|date:"Y.m.d H:i" }}</span>
-        </div>
-        {% empty %}
-        <div class="text-center py-5 text-muted">아직 후원 내역이 없습니다.</div>
-        {% endfor %}
+    <div class="card border-0 shadow-sm text-center py-5">
+        <p class="text-muted mb-3">로그인하면 이 보호소에 대한 나의 후원 내역을 확인할 수 있습니다.</p>
+        <a href="{% url 'login' %}?next={{ request.path|urlencode }}" class="btn btn-primary rounded-pill px-4">로그인하기</a>
     </div>
 
     <ul class="nav nav-pills nav-fill bg-light rounded p-1 mt-4" role="tablist">

@@ -1,42 +1,52 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<script src="https://cdn.iamport.kr/v1/iamport.js"></script>
+
 <div class="py-3">
     <a href="{% url 'shelter_detail_info' shelter.pk %}" class="text-decoration-none text-muted small">← {{ shelter.name }}</a>
     <h4 class="fw-bold mt-2">사료 후원</h4>
     <p class="text-muted small">플랫폼에서 사료를 구매하면 해당 보호소에 전달됩니다.</p>
 
-    <form method="post" action="{% url 'shelter_donate_do' shelter.pk %}">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label class="form-label">수량</label>
-            <input type="number" name="amount" class="form-control" value="1" min="1" max="100">
-        </div>
-        <div class="list-group">
-            {% for product in products %}
-            <label class="list-group-item d-flex gap-3 align-items-center border rounded mb-2">
-                <input type="radio" name="product_id" value="{{ product.pk }}" {% if shelter.target_product_id == product.pk %}checked{% endif %} class="form-check-input">
-                <div class="d-flex w-100 align-items-center">
-                    {% if product.image %}
-                    <img src="{{ product.image.url }}" alt="" class="rounded" style="width: 56px; height: 56px; object-fit: cover;">
-                    {% else %}
-                    <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 56px; height: 56px; font-size: 0.7rem;">사료</div>
-                    {% endif %}
-                    <div class="ms-3 flex-grow-1">
-                        <strong>{{ product.name }}</strong>
-                        {% if shelter.target_product_id == product.pk %}<span class="badge bg-primary ms-1">보호소 추천</span>{% endif %}
-                        <div class="text-muted small">{{ product.price|floatformat:0 }}원</div>
-                    </div>
+    <div class="mb-3">
+        <label class="form-label">수량</label>
+        <input type="number" id="donate-amount" class="form-control" value="1" min="1" max="100">
+    </div>
+    <div class="list-group mb-4">
+        {% for product in products %}
+        <label class="list-group-item d-flex gap-3 align-items-center border rounded mb-2 product-option">
+            <input type="radio" name="product_id" value="{{ product.pk }}" data-price="{{ product.price }}" data-name="{{ product.name }}"
+                   {% if shelter.target_product_id == product.pk %}checked{% endif %} class="form-check-input product-radio">
+            <div class="d-flex w-100 align-items-center">
+                {% if product.image %}
+                <img src="{{ product.image.url }}" alt="" class="rounded" style="width: 56px; height: 56px; object-fit: cover;">
+                {% else %}
+                <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 56px; height: 56px; font-size: 0.7rem;">사료</div>
+                {% endif %}
+                <div class="ms-3 flex-grow-1">
+                    <strong>{{ product.name }}</strong>
+                    {% if shelter.target_product_id == product.pk %}<span class="badge bg-primary ms-1">보호소 추천</span>{% endif %}
+                    <div class="text-muted small">{{ product.price|floatformat:0 }}원</div>
                 </div>
-            </label>
-            {% empty %}
-            <p class="text-muted">등록된 사료가 없습니다.</p>
-            {% endfor %}
-        </div>
-        {% if products %}
-        <button type="submit" class="btn btn-primary w-100 rounded-pill mt-2">후원하기</button>
-        {% endif %}
-    </form>
+            </div>
+        </label>
+        {% empty %}
+        <p class="text-muted">등록된 사료가 없습니다.</p>
+        {% endfor %}
+    </div>
+
+    {% if products %}
+    <div class="mt-3 mb-2">
+        <button type="button" onclick="requestPay()" class="btn btn-warning w-100 py-3 fw-bold rounded-pill">
+            카카오페이로 후원하기
+        </button>
+    </div>
+    {% if not user.is_authenticated %}
+    <div class="alert alert-info small py-2">
+        로그인 후 결제가 가능합니다. <a href="{% url 'login' %}?next={{ request.path|urlencode }}">로그인하기</a>
+    </div>
+    {% endif %}
+    {% endif %}
 
     <ul class="nav nav-pills nav-fill bg-light rounded p-1 mt-4" role="tablist">
         <li class="nav-item"><a class="nav-link" href="{% url 'shelter_detail_info' shelter.pk %}">기본정보</a></li>
@@ -45,4 +55,63 @@
         <li class="nav-item"><a class="nav-link" href="{% url 'shelter_donations' shelter.pk %}">후원 내역</a></li>
     </ul>
 </div>
+
+<script>
+(function() {
+    var IMP = window.IMP;
+    IMP.init("{{ PORTONE_IMP_CODE }}");
+    var IS_LOGGED_IN = {{ user.is_authenticated|yesno:"true,false" }};
+    var LOGIN_URL = "{% url 'login' %}?next={{ request.path|urlencode }}";
+
+    window.requestPay = function() {
+        if (!IS_LOGGED_IN) {
+            alert('로그인 후 결제할 수 있습니다.');
+            location.href = LOGIN_URL;
+            return;
+        }
+        var amountInput = document.getElementById('donate-amount');
+        var amount = 1;
+        if (amountInput) {
+            var v = parseInt(amountInput.value, 10);
+            if (!isNaN(v) && v >= 1 && v <= 100) amount = v;
+        }
+        var radio = document.querySelector('.product-radio:checked');
+        if (!radio) {
+            alert('사료를 선택해 주세요.');
+            return;
+        }
+        var price = parseInt(radio.getAttribute('data-price'), 10) || 0;
+        var productName = radio.getAttribute('data-name') || '사료';
+        var productId = radio.value;
+        var totalAmount = price * amount;
+        if (totalAmount <= 0) {
+            alert('결제 금액을 확인해 주세요.');
+            return;
+        }
+        var merchantUid = 'order_' + new Date().getTime();
+        var payName = "{{ shelter.name|escapejs }} " + productName + " 후원";
+        if (amount > 1) payName += " x " + amount;
+
+        IMP.request_pay({
+            pg: "kakaopay.TC0ONETIME",
+            pay_method: "card",
+            merchant_uid: merchantUid,
+            name: payName,
+            amount: totalAmount,
+            buyer_email: "{{ request.user.email|default:''|escapejs }}",
+            buyer_name: "{{ request.user.get_full_name|default:request.user.username|escapejs }}",
+        }, function (rsp) {
+            if (rsp.success) {
+                var base = "{% url 'donate_process' shelter.pk %}";
+                var params = "imp_uid=" + encodeURIComponent(rsp.imp_uid)
+                    + "&product_id=" + encodeURIComponent(productId)
+                    + "&amount=" + encodeURIComponent(String(amount));
+                location.href = base + "?" + params;
+            } else {
+                alert('결제에 실패했습니다: ' + (rsp.error_msg || '알 수 없는 오류'));
+            }
+        });
+    };
+})();
+</script>
 {% endblock %}

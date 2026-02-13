@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from shelter.models import Shelter, Donation
 
@@ -9,7 +9,7 @@ def home(request):
     return render(request, 'home.html', {'shelters': shelters})
 
 
-@login_required(login_url='/admin/login/')
+@login_required
 def mypage(request):
     """내 정보 - 후원 기록, 커뮤니티 활동 등"""
     donations = Donation.objects.filter(user=request.user).select_related(

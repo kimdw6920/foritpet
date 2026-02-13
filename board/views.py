@@ -16,7 +16,7 @@ def community_post_detail(request, pk):
     return render(request, 'board/community_post_detail.html', {'post': post})
 
 
-@login_required(login_url='/admin/login/')
+@login_required
 def community_post_create(request):
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
@@ -49,7 +49,7 @@ def shelter_community_post_detail(request, shelter_pk, pk):
     })
 
 
-@login_required(login_url='/admin/login/')
+@login_required
 def shelter_community_post_create(request, shelter_pk):
     shelter = get_object_or_404(Shelter, pk=shelter_pk)
     if request.method == 'POST':
