@@ -7,10 +7,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         shelter_names = ["test", "test2"]
-        product_names = ["fpdla 사료"]
+        # 이름에 'fpdla'가 포함된 사료를 모두 삭제
+        product_qs = Product.objects.filter(name__icontains="fpdla")
 
         deleted_shelters, _ = Shelter.objects.filter(name__in=shelter_names).delete()
-        deleted_products, _ = Product.objects.filter(name__in=product_names).delete()
+        deleted_products, _ = product_qs.delete()
 
         self.stdout.write(self.style.SUCCESS(
             f"삭제된 보호소 레코드 수: {deleted_shelters}, 삭제된 사료 레코드 수: {deleted_products}"

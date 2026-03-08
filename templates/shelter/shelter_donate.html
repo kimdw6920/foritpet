@@ -8,21 +8,24 @@
     <h4 class="fw-bold mt-2">사료 후원</h4>
     <p class="text-muted small">플랫폼에서 사료를 구매하면 해당 보호소에 전달됩니다.</p>
 
-    <div class="mb-3">
-        <label class="form-label">수량</label>
-        <input type="number" id="donate-amount" class="form-control" value="1" min="1" max="100">
-    </div>
     <div class="list-group mb-4">
         {% for product in products %}
         <label class="list-group-item d-flex gap-3 align-items-center border rounded mb-2 product-option">
-            <input type="radio" name="product_id" value="{{ product.pk }}" data-price="{{ product.price }}" data-name="{{ product.name }}"
-                   {% if shelter.target_product_id == product.pk %}checked{% endif %} class="form-check-input product-radio">
             <div class="d-flex w-100 align-items-center">
                 <img src="https://placehold.co/80x80?text=Feed" alt="" class="rounded" style="width: 56px; height: 56px; object-fit: cover;">
                 <div class="ms-3 flex-grow-1">
                     <strong>{{ product.name }}</strong>
                     {% if shelter.target_product_id == product.pk %}<span class="badge bg-primary ms-1">보호소 추천</span>{% endif %}
                     <div class="text-muted small">{{ product.price|floatformat:0 }}원</div>
+                </div>
+                <div class="ms-3" style="width: 80px;">
+                    <input type="number"
+                           name="qty_{{ product.pk }}"
+                           class="form-control form-control-sm product-qty"
+                           data-product-id="{{ product.pk }}"
+                           data-price="{{ product.price }}"
+                           data-name="{{ product.name }}"
+                           min="0" max="100" value="0">
                 </div>
             </div>
         </label>
@@ -66,28 +69,33 @@
             location.href = LOGIN_URL;
             return;
         }
-        var amountInput = document.getElementById('donate-amount');
-        var amount = 1;
-        if (amountInput) {
-            var v = parseInt(amountInput.value, 10);
-            if (!isNaN(v) && v >= 1 && v <= 100) amount = v;
-        }
-        var radio = document.querySelector('.product-radio:checked');
-        if (!radio) {
-            alert('사료를 선택해 주세요.');
+        var qtyInputs = document.querySelectorAll('.product-qty');
+        var items = [];
+        var totalAmount = 0;
+        qtyInputs.forEach(function(input) {
+            var qty = parseInt(input.value, 10) || 0;
+            if (qty > 0) {
+                var price = parseInt(input.getAttribute('data-price'), 10) || 0;
+                var name = input.getAttribute('data-name') || '사료';
+                var pid = input.getAttribute('data-product-id');
+                items.push({id: pid, qty: qty, price: price, name: name});
+                totalAmount += price * qty;
+            }
+        });
+        if (!items.length) {
+            alert('하나 이상의 사료와 수량을 입력해 주세요.');
             return;
         }
-        var price = parseInt(radio.getAttribute('data-price'), 10) || 0;
-        var productName = radio.getAttribute('data-name') || '사료';
-        var productId = radio.value;
-        var totalAmount = price * amount;
         if (totalAmount <= 0) {
             alert('결제 금액을 확인해 주세요.');
             return;
         }
         var merchantUid = 'order_' + new Date().getTime();
-        var payName = "{{ shelter.name|escapejs }} " + productName + " 후원";
-        if (amount > 1) payName += " x " + amount;
+        var firstName = items[0].name;
+        var payName = "{{ shelter.name|escapejs }} " + firstName + " 외 " + (items.length - 1) + "종 후원";
+        if (items.length === 1 && items[0].qty === 1) {
+            payName = "{{ shelter.name|escapejs }} " + firstName + " 후원";
+        }
 
         IMP.request_pay({
             pg: "kakaopay.TC0ONETIME",
@@ -100,9 +108,11 @@
         }, function (rsp) {
             if (rsp.success) {
                 var base = "{% url 'donate_process' shelter.pk %}";
+                var itemsParam = items.map(function(it) {
+                    return it.id + "x" + it.qty;
+                }).join(",");
                 var params = "imp_uid=" + encodeURIComponent(rsp.imp_uid)
-                    + "&product_id=" + encodeURIComponent(productId)
-                    + "&amount=" + encodeURIComponent(String(amount));
+                    + "&items=" + encodeURIComponent(itemsParam);
                 location.href = base + "?" + params;
             } else {
                 alert('결제에 실패했습니다: ' + (rsp.error_msg || '알 수 없는 오류'));

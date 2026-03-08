@@ -102,6 +102,42 @@ def donate_process(request, pk):
     """결제 완료 콜백: (임시) 결제 검증 없이 후원 내역만 저장"""
     shelter = get_object_or_404(Shelter, pk=pk)
     imp_uid = (request.GET.get('imp_uid') or '').strip()
+    items_param = (request.GET.get('items') or '').strip()
+    created_any = False
+    if items_param:
+        # 새 방식: items=productIdXqty,productIdXqty,...
+        parts = [p for p in items_param.split(',') if p]
+        if not parts:
+            messages.error(request, '후원 정보가 올바르지 않습니다.')
+            return redirect('shelter_donate', pk=pk)
+        # imp_uid가 넘어온 경우 중복 전체 방지
+        if imp_uid and Donation.objects.filter(imp_uid=imp_uid).exists():
+            messages.info(request, '이미 처리된 후원입니다.')
+            return redirect('shelter_donations', pk=pk)
+        for part in parts:
+            try:
+                pid_str, qty_str = part.split('x', 1)
+                pid = int(pid_str)
+                qty = max(1, min(100, int(qty_str)))
+            except (ValueError, TypeError):
+                continue
+            product = get_object_or_404(Product, pk=pid)
+            Donation.objects.create(
+                user=request.user,
+                shelter=shelter,
+                product=product,
+                amount=qty,
+                imp_uid=imp_uid,
+                merchant_uid='',
+            )
+            created_any = True
+        if not created_any:
+            messages.error(request, '후원 정보가 올바르지 않습니다.')
+            return redirect('shelter_donate', pk=pk)
+        messages.success(request, '선택하신 사료 후원이 등록되었습니다.')
+        return redirect('shelter_donations', pk=pk)
+
+    # 기존 단일 상품 방식 (fallback)
     product_id = request.GET.get('product_id')
     amount_str = request.GET.get('amount', '1')
     if not product_id:

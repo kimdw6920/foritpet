@@ -34,10 +34,11 @@ def community_post_create(request):
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
         content = request.POST.get('content', '').strip()
+        image = request.FILES.get('image')
         if not title or not content:
             messages.warning(request, '제목과 내용을 입력해 주세요.')
             return redirect('community_list')
-        Post.objects.create(author=request.user, title=title, content=content, shelter=None)
+        Post.objects.create(author=request.user, title=title, content=content, image=image, shelter=None)
         messages.success(request, '글이 등록되었습니다.')
         return redirect('community_list')
     return render(request, 'board/community_post_form.html', {'post': None})
@@ -68,10 +69,11 @@ def shelter_community_post_create(request, shelter_pk):
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
         content = request.POST.get('content', '').strip()
+        image = request.FILES.get('image')
         if not title or not content:
             messages.warning(request, '제목과 내용을 입력해 주세요.')
             return redirect('shelter_community_list', shelter_pk=shelter.pk)
-        Post.objects.create(author=request.user, shelter=shelter, title=title, content=content)
+        Post.objects.create(author=request.user, shelter=shelter, title=title, content=content, image=image)
         messages.success(request, '글이 등록되었습니다.')
         return redirect('shelter_community_list', shelter_pk=shelter.pk)
     return render(request, 'board/shelter_community_post_form.html', {

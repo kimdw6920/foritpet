@@ -28,11 +28,15 @@ def mypage(request):
     donations = Donation.objects.filter(user=request.user).select_related(
         'shelter', 'product'
     ).order_by('-created_at')[:30]
-    total_donations_all = Donation.objects.filter(user=request.user)
-    total_items = sum(d.amount for d in total_donations_all)
+    # 사용자가 후원한 전체 사료 무게(kg) 합산
+    total_donations_all = Donation.objects.filter(user=request.user).select_related('product')
+    total_kg = 0.0
+    for d in total_donations_all:
+        weight = getattr(d.product, 'weight_kg', 1.0) or 1.0
+        total_kg += d.amount * weight
     return render(request, 'mypage.html', {
         'donations': donations,
-        'total_items': total_items,
+        'total_kg': total_kg,
     })
 
 
