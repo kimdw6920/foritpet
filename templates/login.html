@@ -35,9 +35,15 @@
         <button type="submit" class="btn btn-primary w-100 rounded-pill">로그인</button>
     </form>
 
-    <p class="text-center text-muted small mt-4">
-        계정이 없으시면 관리자에게 문의하거나<br>
-        <a href="/admin/">관리자 페이지</a>에서 회원가입(직접 생성)할 수 있습니다.
-    </p>
+    <div class="text-center text-muted small mt-4">
+        <p class="mb-1">
+            계정이 없으신가요?
+            <a href="{% url 'signup' %}">회원가입</a>
+        </p>
+        <p class="mb-0">
+            <a href="{% url 'find_username' %}">아이디 찾기</a> ·
+            <a href="{% url 'password_reset' %}">비밀번호 재설정</a>
+        </p>
+    </div>
 </div>
 {% endblock %}

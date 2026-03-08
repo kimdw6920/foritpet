@@ -9,6 +9,7 @@
         <li class="nav-item"><a class="nav-link" href="{% url 'shelter_donate' shelter.pk %}">사료 후원</a></li>
         <li class="nav-item"><a class="nav-link active" href="{% url 'shelter_community_list' shelter.pk %}">보호소 커뮤니티</a></li>
         <li class="nav-item"><a class="nav-link" href="{% url 'shelter_donations' shelter.pk %}">후원 내역</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_chat' shelter.pk %}">실시간 채팅</a></li>
     </ul>
     <p class="text-muted small">{{ shelter.name }} 후원자들과 소통해 보세요.</p>
 

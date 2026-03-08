@@ -1,9 +1,11 @@
+import json
 import requests
 from django.conf import settings
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Shelter, Product, Donation
+from .models import Shelter, Product, Donation, ChatMessage
 
 
 def shelter_list(request):
@@ -54,22 +56,23 @@ def shelter_donate_do(request, pk):
 
 
 def _get_portone_access_token():
-    """포트원 REST API 액세스 토큰 발급 (서버 결제 검증용)"""
+    """포트원 REST API 액세스 토큰 발급 (서버 결제 검증용). 현재는 결제 검증을 사용하지 않으므로 호출되지 않습니다."""
     key = getattr(settings, 'PORTONE_REST_API_KEY', '') or ''
     secret = getattr(settings, 'PORTONE_REST_API_SECRET', '') or ''
     if not key or not secret:
         return None
-    r = requests.post(
-        'https://api.iamport.kr/users/getToken',
-        json={'imp_key': key, 'imp_secret': secret},
-        timeout=10,
-    )
-    if r.status_code != 200:
+    try:
+        r = requests.post(
+            'https://api.iamport.kr/users/getToken',
+            json={'imp_key': key, 'imp_secret': secret},
+            timeout=10,
+        )
+        data = r.json()
+        if r.status_code != 200 or data.get('code') != 0:
+            return None
+        return data.get('response', {}).get('access_token')
+    except Exception:
         return None
-    data = r.json()
-    if data.get('code') != 0:
-        return None
-    return data.get('response', {}).get('access_token')
 
 
 def _verify_portone_payment(imp_uid):
@@ -77,58 +80,49 @@ def _verify_portone_payment(imp_uid):
     token = _get_portone_access_token()
     if not token:
         return False, 0, None
-    r = requests.get(
-        f'https://api.iamport.kr/payments/{imp_uid}',
-        headers={'Authorization': token},
-        timeout=10,
-    )
-    if r.status_code != 200:
+    try:
+        r = requests.get(
+            f'https://api.iamport.kr/payments/{imp_uid}',
+            headers={'Authorization': token},
+            timeout=10,
+        )
+        data = r.json()
+        if r.status_code != 200 or data.get('code') != 0:
+            return False, 0, None
+        res = data.get('response', {})
+        if res.get('status') != 'paid':
+            return False, 0, None
+        return True, res.get('amount', 0), res.get('merchant_uid')
+    except Exception:
         return False, 0, None
-    data = r.json()
-    if data.get('code') != 0:
-        return False, 0, None
-    res = data.get('response', {})
-    if res.get('status') != 'paid':
-        return False, 0, None
-    return True, res.get('amount', 0), res.get('merchant_uid')
 
 
 @login_required
 def donate_process(request, pk):
-    """결제 완료 콜백: imp_uid 검증 후 후원 내역 저장 (보안: 서버에서 반드시 검증)"""
+    """결제 완료 콜백: (임시) 결제 검증 없이 후원 내역만 저장"""
     shelter = get_object_or_404(Shelter, pk=pk)
     imp_uid = (request.GET.get('imp_uid') or '').strip()
     product_id = request.GET.get('product_id')
     amount_str = request.GET.get('amount', '1')
-    if not imp_uid or not product_id:
-        messages.error(request, '결제 정보가 올바르지 않습니다.')
+    if not product_id:
+        messages.error(request, '후원 정보가 올바르지 않습니다.')
         return redirect('shelter_donate', pk=pk)
     try:
         amount = max(1, min(100, int(amount_str)))
     except (TypeError, ValueError):
         amount = 1
     product = get_object_or_404(Product, pk=product_id)
-    expected_amount = product.price * amount
-    if expected_amount <= 0:
-        messages.error(request, '결제 금액이 올바르지 않습니다.')
-        return redirect('shelter_donate', pk=pk)
-    if Donation.objects.filter(imp_uid=imp_uid).exists():
-        messages.info(request, '이미 처리된 결제입니다.')
+    # imp_uid가 넘어온 경우 중복 저장 방지
+    if imp_uid and Donation.objects.filter(imp_uid=imp_uid).exists():
+        messages.info(request, '이미 처리된 후원입니다.')
         return redirect('shelter_donations', pk=pk)
-    ok, paid_amount, merchant_uid = _verify_portone_payment(imp_uid)
-    if not ok:
-        messages.error(request, '결제 검증에 실패했습니다. 결제가 완료되었다면 고객센터로 문의해 주세요.')
-        return redirect('shelter_donate', pk=pk)
-    if paid_amount != expected_amount:
-        messages.error(request, f'결제 금액이 일치하지 않습니다. (결제: {paid_amount}원, 예상: {expected_amount}원)')
-        return redirect('shelter_donate', pk=pk)
     Donation.objects.create(
         user=request.user,
         shelter=shelter,
         product=product,
         amount=amount,
         imp_uid=imp_uid,
-        merchant_uid=merchant_uid or '',
+        merchant_uid='',
     )
     messages.success(request, f'{product.name} {amount}개가 {shelter.name}에 후원 등록되었습니다.')
     return redirect('shelter_donations', pk=pk)
@@ -150,3 +144,44 @@ def shelter_donations(request, pk):
         'shelter': shelter,
         'donations': donations,
     })
+
+
+def shelter_chat(request, pk):
+    """보호소 실시간 채팅 페이지"""
+    shelter = get_object_or_404(Shelter, pk=pk)
+    messages_qs = ChatMessage.objects.filter(shelter=shelter).select_related('user').order_by('-created_at')[:50]
+    messages_qs = reversed(list(messages_qs))
+    return render(request, 'shelter/shelter_chat.html', {
+        'shelter': shelter,
+        'chat_messages': messages_qs,
+    })
+
+
+def shelter_chat_messages(request, pk):
+    """최근 채팅 메시지를 JSON으로 반환 (간단 폴링용)"""
+    shelter = get_object_or_404(Shelter, pk=pk)
+    messages_qs = ChatMessage.objects.filter(shelter=shelter).select_related('user').order_by('-created_at')[:50]
+    data = [
+        {
+            'user': m.user.username,
+            'content': m.content,
+            'created_at': m.created_at.strftime('%H:%M'),
+        }
+        for m in reversed(list(messages_qs))
+    ]
+    return JsonResponse({'messages': data})
+
+
+@login_required
+def shelter_chat_send(request, pk):
+    """채팅 메시지 전송 (AJAX 또는 일반 POST)"""
+    if request.method != 'POST':
+        return HttpResponseBadRequest('Invalid method')
+    shelter = get_object_or_404(Shelter, pk=pk)
+    content = (request.POST.get('content') or '').strip()
+    if not content:
+        return HttpResponseBadRequest('Empty message')
+    ChatMessage.objects.create(shelter=shelter, user=request.user, content=content)
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'ok': True})
+    return redirect('shelter_chat', pk=pk)

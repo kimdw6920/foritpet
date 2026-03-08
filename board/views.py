@@ -1,14 +1,27 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Sum
+from django.utils import timezone
 from .models import Post
-from shelter.models import Shelter
+from shelter.models import Shelter, Donation
 
 
 def community_list(request):
-    """전체 커뮤니티 목록 (shelter가 없는 글만)"""
+    """전체 커뮤니티 목록 (shelter가 없는 글만) + 이달의 후원왕"""
     posts = Post.objects.filter(shelter__isnull=True)
-    return render(request, 'board/community_list.html', {'posts': posts})
+    now = timezone.now()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    top_donors = (
+        Donation.objects.filter(created_at__gte=month_start)
+        .values('user__id', 'user__username')
+        .annotate(total_amount=Sum('amount'))
+        .order_by('-total_amount')[:5]
+    )
+    return render(request, 'board/community_list.html', {
+        'posts': posts,
+        'top_donors': top_donors,
+    })
 
 
 def community_post_detail(request, pk):

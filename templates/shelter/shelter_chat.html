@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="py-3">
+    <a href="{% url 'shelter_detail_info' shelter.pk %}" class="text-decoration-none text-muted small">← {{ shelter.name }}</a>
+    <h4 class="fw-bold mt-2">실시간 채팅</h4>
+    <p class="text-muted small">보호소와 후원자들이 실시간으로 대화할 수 있는 공간입니다.</p>
+
+    <div id="chat-box" class="border rounded p-2 mb-3" style="height: 320px; overflow-y: auto; background: #f8f9fa;">
+        {% for m in chat_messages %}
+        <div class="mb-1">
+            <span class="small text-muted">[{{ m.created_at|date:"H:i" }}] {{ m.user.username }}:</span>
+            <span class="small">{{ m.content }}</span>
+        </div>
+        {% empty %}
+        <div class="text-muted small">아직 채팅이 없습니다. 첫 메시지를 남겨 보세요!</div>
+        {% endfor %}
+    </div>
+
+    <form id="chat-form" method="post" action="{% url 'shelter_chat_send' shelter.pk %}" class="d-flex gap-2">
+        {% csrf_token %}
+        <input type="text" name="content" id="chat-input" class="form-control" placeholder="메시지를 입력하세요." autocomplete="off">
+        <button type="submit" class="btn btn-primary">전송</button>
+    </form>
+
+    {% if not user.is_authenticated %}
+    <p class="text-muted small mt-2">로그인 후 채팅에 참여할 수 있습니다.</p>
+    {% endif %}
+
+    <ul class="nav nav-pills nav-fill bg-light rounded p-1 mt-4" role="tablist">
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_detail_info' shelter.pk %}">기본정보</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_donate' shelter.pk %}">사료 후원</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_community_list' shelter.pk %}">보호소 커뮤니티</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_donations' shelter.pk %}">후원 내역</a></li>
+        <li class="nav-item"><a class="nav-link active" href="{% url 'shelter_chat' shelter.pk %}">실시간 채팅</a></li>
+    </ul>
+</div>
+
+<script>
+(function() {
+    const chatBox = document.getElementById('chat-box');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const messagesUrl = "{% url 'shelter_chat_messages' shelter.pk %}";
+    const sendUrl = "{% url 'shelter_chat_send' shelter.pk %}";
+
+    function scrollToBottom() {
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function fetchMessages() {
+        fetch(messagesUrl)
+            .then(res => res.json())
+            .then(data => {
+                chatBox.innerHTML = '';
+                data.messages.forEach(m => {
+                    const div = document.createElement('div');
+                    div.className = 'mb-1';
+                    div.innerHTML = `<span class="small text-muted">[${m.created_at}] ${m.user}:</span> <span class="small">${m.content}</span>`;
+                    chatBox.appendChild(div);
+                });
+                if (!data.messages.length) {
+                    chatBox.innerHTML = '<div class="text-muted small">아직 채팅이 없습니다. 첫 메시지를 남겨 보세요!</div>';
+                }
+                scrollToBottom();
+            })
+            .catch(() => {});
+    }
+
+    chatForm.addEventListener('submit', function(e) {
+        {% if not user.is_authenticated %}
+        e.preventDefault();
+        alert('로그인 후 채팅에 참여할 수 있습니다.');
+        return;
+        {% endif %}
+        e.preventDefault();
+        const content = chatInput.value.trim();
+        if (!content) return;
+        const formData = new FormData(chatForm);
+        fetch(sendUrl, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+            .then(res => {
+                if (!res.ok) throw new Error();
+                chatInput.value = '';
+                fetchMessages();
+            })
+            .catch(() => {
+                // fallback: 전체 새로고침
+                window.location.reload();
+            });
+    });
+
+    // 주기적으로 메시지 새로고침
+    fetchMessages();
+    setInterval(fetchMessages, 5000);
+})();
+</script>
+{% endblock %}
+

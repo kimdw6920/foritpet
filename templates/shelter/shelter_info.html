@@ -5,11 +5,7 @@
     <a href="{% url 'shelter_list' %}" class="text-decoration-none text-muted small">← 보호소 목록</a>
 
     <div class="card border-0 shadow-sm mt-2 overflow-hidden" style="border-radius: 12px;">
-        {% if shelter.image %}
-        <img src="{{ shelter.image.url }}" class="img-fluid" style="max-height: 200px; object-fit: cover;">
-        {% else %}
-        <div class="bg-light d-flex align-items-center justify-content-center text-muted" style="height: 160px;">이미지 없음</div>
-        {% endif %}
+        <img src="https://placehold.co/600x240?text=Shelter" class="img-fluid" style="max-height: 200px; object-fit: cover;">
         <div class="card-body">
             <h4 class="fw-bold">{{ shelter.name }}</h4>
             <p class="text-muted small mb-1"><span class="badge bg-light text-dark">{{ shelter.get_region_display }}</span> {{ shelter.address }}</p>
@@ -23,6 +19,7 @@
         <li class="nav-item"><a class="nav-link" href="{% url 'shelter_donate' shelter.pk %}">사료 후원</a></li>
         <li class="nav-item"><a class="nav-link" href="{% url 'shelter_community_list' shelter.pk %}">보호소 커뮤니티</a></li>
         <li class="nav-item"><a class="nav-link" href="{% url 'shelter_donations' shelter.pk %}">후원 내역</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'shelter_chat' shelter.pk %}">실시간 채팅</a></li>
     </ul>
 </div>
 {% endblock %}

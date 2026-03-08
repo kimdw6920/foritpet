@@ -127,6 +127,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = 'media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# 이메일 (비밀번호 재설정, 아이디 찾기 - 개발 환경에서는 콘솔로 출력)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'no-reply@foritpet.local'
+
 # 로그인/로그아웃 (보안: 인증 실패 시 이 URL로 리다이렉트)
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
@@ -136,12 +140,12 @@ LOGOUT_REDIRECT_URL = '/'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_SAVE_EVERY_REQUEST = False
-CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 
 # 포트원(아임포트) 결제
 # 프론트: 가맹점 식별코드 (고객사 식별코드)
 PORTONE_IMP_CODE = os.environ.get('PORTONE_IMP_CODE', 'imp88875057')
 # 서버 결제 검증용 (관리자콘솔 > 결제 연동 > 식별코드・API Keys > V1 API)
-PORTONE_REST_API_KEY = os.environ.get('PORTONE_REST_API_KEY', '')
-PORTONE_REST_API_SECRET = os.environ.get('PORTONE_REST_API_SECRET', '')
+PORTONE_REST_API_KEY = os.environ.get('PORTONE_REST_API_KEY', '0260860467601764')
+PORTONE_REST_API_SECRET = os.environ.get('PORTONE_REST_API_SECRET', 'txcAyZlTut0dXEUCVdxkBkynPgfbQVT4w9b5W2oWZIqCp5q5xADj84uFMmn96Xd4cymUwTwEWRrM18vh')

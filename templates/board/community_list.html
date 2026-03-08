@@ -5,6 +5,22 @@
     <h4 class="fw-bold">커뮤니티 💬</h4>
     <p class="text-muted small">후원 후기를 나누고 소통해 보세요.</p>
 
+    {% if top_donors %}
+    <div class="card border-0 shadow-sm mb-3" style="border-radius: 15px;">
+        <div class="card-body p-3">
+            <h6 class="fw-bold mb-2">이달의 후원왕 🏆</h6>
+            <ol class="mb-0 ps-3 small">
+                {% for d in top_donors %}
+                <li class="d-flex justify-content-between">
+                    <span>{{ d.user__username }}</span>
+                    <span class="text-primary fw-bold">{{ d.total_amount }}개</span>
+                </li>
+                {% endfor %}
+            </ol>
+        </div>
+    </div>
+    {% endif %}
+
     <a href="{% url 'community_post_create' %}" class="btn btn-primary w-100 mb-3 rounded-pill">글쓰기</a>
 
     <div class="list-group list-group-flush">

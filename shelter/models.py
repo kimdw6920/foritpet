@@ -7,6 +7,8 @@ class Product(models.Model):
     price = models.IntegerField(verbose_name="가격")
     image = models.ImageField(upload_to='products/', verbose_name="사료이미지")
     description = models.TextField(verbose_name="사료설명")
+     # 포장 무게 (kg 단위, 전체 후원 kg 계산에 사용)
+    weight_kg = models.FloatField(default=1.0, verbose_name="포장 무게(kg)")
 
     def __str__(self):
         return self.name
@@ -46,3 +48,17 @@ class Donation(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.shelter.name} ({self.product.name})"
+
+
+class ChatMessage(models.Model):
+    """보호소별 실시간 채팅 메시지"""
+    shelter = models.ForeignKey(Shelter, on_delete=models.CASCADE, related_name='chat_messages')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.shelter.name} - {self.user.username}: {self.content[:20]}"
