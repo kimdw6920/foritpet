@@ -27,6 +27,9 @@ urlpatterns = [
     path('shelter/', include('shelter.urls')),
     path('community/', include('board.urls')),
     path('mypage/', main_views.mypage, name='mypage'),
+    path('mypage/donations/', main_views.mypage_donations, name='mypage_donations'),
 ]
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

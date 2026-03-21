@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">홈</a>
+    &rsaquo; <a href="{% url 'admin:shelter_donation_changelist' %}">Donations</a>
+    &rsaquo; 송장 일괄 업로드
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>송장 일괄 업로드</h1>
+<p class="mb-4">엑셀 파일에 <strong>후원ID, 송장번호, 택배사</strong> 컬럼을 넣어 업로드하면 주문(후원)과 자동 매칭됩니다.<br>
+    관리자 &gt; Donations 목록에서 후원ID를 확인한 뒤, 창고에서 받은 엑셀을 그 형식에 맞춰 올려주세요.</p>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <p>
+        <label for="id_excel_file">엑셀 파일 (.xlsx)</label><br>
+        <input type="file" name="excel_file" id="id_excel_file" accept=".xlsx" required>
+    </p>
+    <p>
+        <input type="submit" value="업로드 후 매칭하기" class="default">
+    </p>
+</form>
+
+<div class="module">
+    <h2>엑셀 형식 예시</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>후원ID</th>
+                <th>송장번호</th>
+                <th>택배사</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>1</td><td>1234567890123</td><td>CJ대한통운</td></tr>
+            <tr><td>2</td><td>9876543210987</td><td>한진택배</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

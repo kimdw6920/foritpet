@@ -40,6 +40,15 @@ def mypage(request):
     })
 
 
+@login_required
+def mypage_donations(request):
+    """내 정보 - 후원 내역 전체 목록 (배송 조회 포함)"""
+    donations = Donation.objects.filter(user=request.user).select_related(
+        'shelter', 'product'
+    ).order_by('-created_at')
+    return render(request, 'mypage_donations.html', {'donations': donations})
+
+
 User = get_user_model()
 
 

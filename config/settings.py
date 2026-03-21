@@ -15,17 +15,31 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# .env 파일 로드 (선택, pip install python-dotenv)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / '.env')
+except ImportError:
+    pass
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-q4wjy)7(i&%wl14f-kd%ui%@&(x$=pl+*819epu5z9t&im*ni9'
+# SECRET_KEY: 프로덕션에서는 반드시 환경변수 DJANGO_SECRET_KEY 로만 주입 (저장소에 하드코딩 금지)
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-q4wjy)7(i&%wl14f-kd%ui%@&(x$=pl+*819epu5z9t&im*ni9',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = ['DAEWONKIM.pythonanywhere.com', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = os.environ.get(
+    'DJANGO_ALLOWED_HOSTS',
+    'DAEWONKIM.pythonanywhere.com,127.0.0.1,localhost',
+).split(',')
+ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS if h.strip()]
 
 
 # Application definition
@@ -65,6 +79,7 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
+                'django.template.context_processors.media',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -95,6 +110,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 10},
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -136,16 +152,54 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-# 세션 보안 (프로덕션에서는 True 권장)
+# ---------------------------------------------------------------------------
+# 세션·쿠키 보안
+# ---------------------------------------------------------------------------
+# 브라우저(탭)를 모두 닫으면 세션 쿠키가 만료되도록 (재방문 시 로그인 필요)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+# 최대 유지 시간(초). 활동 시마다 연장하려면 SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_AGE = int(os.environ.get('SESSION_COOKIE_AGE', '3600'))  # 기본 1시간
+SESSION_SAVE_EVERY_REQUEST = True  # 요청마다 만료 시각 갱신(슬라이딩, 활동 중에는 유지)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_SAVE_EVERY_REQUEST = False
-CSRF_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SAMESITE = 'Lax'
+# HTTPS 사용 시 아래 프로덕션 블록에서 SESSION_COOKIE_SECURE = True 로 설정
 
-# 포트원(아임포트) 결제
-# 프론트: 가맹점 식별코드 (고객사 식별코드)
+# CSRF: HttpOnly=False 권장 — 일부 AJAX/스크립트에서 토큰 접근 필요할 수 있음
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_TRUSTED_ORIGINS = [
+    o.strip()
+    for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if o.strip()
+]
+
+# ---------------------------------------------------------------------------
+# 업로드·요청 크기 제한 (DoS 완화)
+# ---------------------------------------------------------------------------
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2_621_440  # 2.5MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2_621_440
+
+# ---------------------------------------------------------------------------
+# HTTPS/프로덕션 전용 (DEBUG=False 이고 DJANGO_USE_HTTPS=1 일 때만)
+# 로컬에서 DEBUG=False + HTTP 테스트 시: DJANGO_USE_HTTPS=0
+# ---------------------------------------------------------------------------
+DJANGO_USE_HTTPS = os.environ.get('DJANGO_USE_HTTPS', '1' if not DEBUG else '0') == '1'
+if not DEBUG and DJANGO_USE_HTTPS:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'same-origin'
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+
+# 개발(DEBUG)에서도 기본 보안 헤더
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'DENY'
+
+# 포트원(아임포트) — 비밀키는 환경변수로만 설정 (코드에 실제 키를 넣지 마세요)
 PORTONE_IMP_CODE = os.environ.get('PORTONE_IMP_CODE', 'imp88875057')
-# 서버 결제 검증용 (관리자콘솔 > 결제 연동 > 식별코드・API Keys > V1 API)
-PORTONE_REST_API_KEY = os.environ.get('PORTONE_REST_API_KEY', '0260860467601764')
-PORTONE_REST_API_SECRET = os.environ.get('PORTONE_REST_API_SECRET', 'txcAyZlTut0dXEUCVdxkBkynPgfbQVT4w9b5W2oWZIqCp5q5xADj84uFMmn96Xd4cymUwTwEWRrM18vh')
+PORTONE_REST_API_KEY = os.environ.get('PORTONE_REST_API_KEY', '')
+PORTONE_REST_API_SECRET = os.environ.get('PORTONE_REST_API_SECRET', '')

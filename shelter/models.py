@@ -42,12 +42,38 @@ class Donation(models.Model):
     imp_uid = models.CharField(max_length=64, blank=True, verbose_name="포트원 결제고유번호")
     merchant_uid = models.CharField(max_length=128, blank=True, verbose_name="주문번호")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="후원시간")
+    # 배송(창고 → 보호소) 조회용
+    tracking_number = models.CharField(max_length=64, blank=True, verbose_name="송장번호")
+    tracking_carrier = models.CharField(max_length=64, blank=True, verbose_name="택배사")
+    shipped_at = models.DateTimeField(null=True, blank=True, verbose_name="발송일시")
 
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
         return f"{self.user.username} - {self.shelter.name} ({self.product.name})"
+
+    def get_tracking_url(self):
+        """택배사별 배송 조회 URL. 없으면 None."""
+        if not self.tracking_number or not self.tracking_carrier:
+            return None
+        num = self.tracking_number.strip()
+        carrier = (self.tracking_carrier or "").strip()
+        # 택배사 이름으로 URL 패턴 매칭
+        if "cj" in carrier.lower() or "대한통운" in carrier or "CJ" in carrier:
+            return f"https://www.cjlogistics.com/ko/tool/parcel/tracking?wlbn={num}"
+        if "한진" in carrier or "hanjin" in carrier.lower():
+            return f"https://www.hanjin.co.kr/kor/CMS/DeliveryMgr.do?mCode=MN038&schLang=KR&wblnum={num}"
+        if "롯데" in carrier or "lotte" in carrier.lower():
+            return f"https://www.lotteglogis.com/home/reservation/tracking/index?InvNo={num}"
+        if "우체국" in carrier or "epost" in carrier.lower() or "우편" in carrier:
+            return f"https://service.epost.go.kr/trace.RetrieveEmsTrace.postal?sid1={num}"
+        if "로젠" in carrier or "logen" in carrier.lower():
+            return f"https://www.logen.co.kr/delivery/delivery_01.asp?param_inv_no={num}"
+        if "cu" in carrier.lower() or "편의점" in carrier:
+            return f"https://www.cupost.co.kr/postbox/cu/tracking.do?inv_no={num}"
+        # 기본: 네이버 배송조회 (여러 택배사 지원)
+        return f"https://search.shopping.naver.com/search/all?query={num}"
 
 
 class ChatMessage(models.Model):

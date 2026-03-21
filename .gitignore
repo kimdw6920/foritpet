@@ -1,4 +1,6 @@
-"venv/" 
-"*.sqlite3" 
-"__pycache__/" 
-".vscode/" 
+venv/
+*.sqlite3
+__pycache__/
+.vscode/
+.env
+*.pyc

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold mb-0">후원 내역</h4>
+        <a href="{% url 'mypage' %}" class="btn btn-outline-secondary btn-sm">내 정보로</a>
+    </div>
+    <p class="text-muted small">후원한 사료의 배송 현황을 확인할 수 있습니다.</p>
+
+    <div class="list-group list-group-flush">
+        {% for d in donations %}
+        <div class="list-group-item border-0 border-bottom py-3 px-0">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <strong>{{ d.product.name }}</strong> × {{ d.amount }}
+                    <div class="text-muted small">{{ d.shelter.name }} · {{ d.created_at|date:"Y.m.d H:i" }}</div>
+                    {% if d.tracking_number %}
+                    <div class="mt-1 small">
+                        <span class="text-muted">{{ d.tracking_carrier }}</span> {{ d.tracking_number }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div>
+                    {% if d.get_tracking_url %}
+                    <a href="{{ d.get_tracking_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">배송 조회</a>
+                    {% elif d.tracking_number %}
+                    <span class="text-muted small">조회 준비 중</span>
+                    {% else %}
+                    <span class="text-muted small">발송 대기</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-5 text-muted">
+            아직 후원 내역이 없습니다.<br>
+            <a href="{% url 'shelter_list' %}">보호소에서 사료 후원하기</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
